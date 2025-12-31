@@ -19,7 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentUser = null;
     
     // API Base URL
-    const API_BASE = 'http://localhost:3000/api';
+    //const API_BASE = 'http://localhost:3000/api';
+
+    const API_BASE = 'https://allaama-studenthub.onrender.com/api';
+
     
     // Track current section to prevent duplicate requests
     let currentSection = null;
