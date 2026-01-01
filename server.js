@@ -1,4 +1,4 @@
-// server.js (updated version - fixing headers sent error)
+// server.js (updated version - fixing delete routes)
 
 require('dotenv').config();
 const express = require('express');
@@ -263,34 +263,54 @@ app.put('/api/students/:id', (req, res) => {
         });
 });
 
+// Fixed delete route for students
 app.delete('/api/students/:id', (req, res) => {
     if (res.headersSent) return;
     
-    Student.findByIdAndDelete(req.params.id)
-        .then(student => {
-            if (!student) {
-                // Try by studentId if _id not found
-                return Student.findOneAndDelete({ studentId: req.params.id });
-            }
-            return student;
-        })
-        .then(student => {
-            if (!res.headersSent) {
-                if (!student) {
-                    return res.status(404).json({ message: 'Student not found' });
+    // Check if the parameter looks like a MongoDB ObjectId
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(req.params.id);
+    
+    if (isObjectId) {
+        // If it's an ObjectId, delete by _id
+        Student.findByIdAndDelete(req.params.id)
+            .then(student => {
+                if (!res.headersSent) {
+                    if (!student) {
+                        return res.status(404).json({ message: 'Student not found' });
+                    }
+                    
+                    // Delete related records
+                    Progress.deleteMany({ studentId: student.studentId }).exec();
+                    Payment.deleteMany({ studentId: student.studentId }).exec();
+                    Certificate.deleteMany({ studentId: student.studentId }).exec();
+                    
+                    res.json({ message: 'Student deleted successfully' });
                 }
-                
-                // Delete related records
-                Progress.deleteMany({ studentId: student.studentId }).exec();
-                Payment.deleteMany({ studentId: student.studentId }).exec();
-                Certificate.deleteMany({ studentId: student.studentId }).exec();
-                
-                res.json({ message: 'Student deleted successfully' });
-            }
-        })
-        .catch(err => {
-            if (!res.headersSent) res.status(500).json({ message: 'Server error' });
-        });
+            })
+            .catch(err => {
+                if (!res.headersSent) res.status(500).json({ message: 'Server error' });
+            });
+    } else {
+        // If not an ObjectId, try to delete by studentId
+        Student.findOneAndDelete({ studentId: req.params.id })
+            .then(student => {
+                if (!res.headersSent) {
+                    if (!student) {
+                        return res.status(404).json({ message: 'Student not found' });
+                    }
+                    
+                    // Delete related records
+                    Progress.deleteMany({ studentId: student.studentId }).exec();
+                    Payment.deleteMany({ studentId: student.studentId }).exec();
+                    Certificate.deleteMany({ studentId: student.studentId }).exec();
+                    
+                    res.json({ message: 'Student deleted successfully' });
+                }
+            })
+            .catch(err => {
+                if (!res.headersSent) res.status(500).json({ message: 'Server error' });
+            });
+    }
 });
 
 // Course Routes
@@ -349,20 +369,42 @@ app.put('/api/courses/:id', (req, res) => {
         });
 });
 
+// Fixed delete route for courses
 app.delete('/api/courses/:id', (req, res) => {
     if (res.headersSent) return;
-    Course.findByIdAndDelete(req.params.id)
-        .then(course => {
-            if (!res.headersSent) {
-                if (!course) {
-                    return res.status(404).json({ message: 'Course not found' });
+    
+    // Check if the parameter looks like a MongoDB ObjectId
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(req.params.id);
+    
+    if (isObjectId) {
+        // If it's an ObjectId, delete by _id
+        Course.findByIdAndDelete(req.params.id)
+            .then(course => {
+                if (!res.headersSent) {
+                    if (!course) {
+                        return res.status(404).json({ message: 'Course not found' });
+                    }
+                    res.json({ message: 'Course deleted successfully' });
                 }
-                res.json({ message: 'Course deleted successfully' });
-            }
-        })
-        .catch(err => {
-            if (!res.headersSent) res.status(500).json({ message: 'Server error' });
-        });
+            })
+            .catch(err => {
+                if (!res.headersSent) res.status(500).json({ message: 'Server error' });
+            });
+    } else {
+        // If not an ObjectId, try to delete by some other field
+        Course.findOneAndDelete({ name: req.params.id })
+            .then(course => {
+                if (!res.headersSent) {
+                    if (!course) {
+                        return res.status(404).json({ message: 'Course not found' });
+                    }
+                    res.json({ message: 'Course deleted successfully' });
+                }
+            })
+            .catch(err => {
+                if (!res.headersSent) res.status(500).json({ message: 'Server error' });
+            });
+    }
 });
 
 // Attendance Routes
@@ -464,6 +506,7 @@ app.put('/api/attendance/:id', (req, res) => {
     }
 });
 
+// Fixed delete route for attendance
 app.delete('/api/attendance/:id', (req, res) => {
     if (res.headersSent) return;
     
@@ -600,6 +643,7 @@ app.put('/api/quizzes/:id', (req, res) => {
     }
 });
 
+// Fixed delete route for quizzes
 app.delete('/api/quizzes/:id', (req, res) => {
     if (res.headersSent) return;
     
@@ -764,6 +808,7 @@ app.put('/api/projects/:id', (req, res) => {
     }
 });
 
+// Fixed delete route for projects
 app.delete('/api/projects/:id', (req, res) => {
     if (res.headersSent) return;
     
